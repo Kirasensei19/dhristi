@@ -15,6 +15,7 @@ import app.routes.notification as notifications
 import app.routes.auth as auth
 import app.routes.user as users
 import app.routes.dashboard as dashboard
+import app.routes.chat as chat
 app = FastAPI()
 
 app.add_middleware(
@@ -39,6 +40,7 @@ app.include_router(notifications.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(dashboard.router)
+app.include_router(chat.router)
 Base.metadata.create_all(bind=engine)
 
 

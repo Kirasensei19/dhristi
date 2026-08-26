@@ -13,6 +13,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import axios from 'axios';
 import { useAuth } from './context/AuthContext';
+import AIChat from './components/AIChat';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -2881,6 +2882,8 @@ export default function App() {
           </button>
         </div>
       )}
+
+      <AIChat />
     </div>
   );
 }

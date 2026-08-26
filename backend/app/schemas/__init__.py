@@ -37,4 +37,4 @@ from .user import (
     UserCreate,
     UserLogin,
     UserResponse
-)
+)from .chat import ChatRequest, ChatResponse

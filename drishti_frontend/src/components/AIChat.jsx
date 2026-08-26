@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Bot, Send, X, AlertTriangle, Truck, Map, Loader2, Zap } from 'lucide-react';
-import { useAuth } from '../context/AuthContext'; // assuming AuthContext exists based on typical structure
+import { Bot, Send, X, AlertTriangle, Truck, Loader2, Zap } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const API = 'http://127.0.0.1:8000';
 
 const AIChat = () => {
+  const { token } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'D.R.I.S.H.T.I AI initialized. How can I assist you with the current disaster intelligence?' }
@@ -32,14 +33,14 @@ const AIChat = () => {
     setIsLoading(true);
 
     try {
-      // Build authConfig the same way App.jsx does
-      const token = localStorage.getItem('drishti_auth_token') || 
-                    localStorage.getItem('access_token') || 
-                    localStorage.getItem('token');
-      
-      const authConfig = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-
-      const response = await axios.post(`${API}/chat`, { message: userMessage }, authConfig);
+      // Read directly from localStorage using the exact key AuthContext saves it under.
+      // This works even if axios.defaults were reset by a hot reload.
+      const savedToken = localStorage.getItem('drishti_auth_token');
+      const response = await axios.post(
+        `${API}/chat`,
+        { message: userMessage },
+        { headers: { Authorization: `Bearer ${savedToken}` } }
+      );
       
       setMessages((prev) => [...prev, { role: 'assistant', content: response.data.response }]);
     } catch (error) {

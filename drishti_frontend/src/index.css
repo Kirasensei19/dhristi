@@ -159,6 +159,11 @@
   display: none !important;
 }
 
+/* ═══════ Dark Tactical Inversion for Official India (gl=IN) Map ═══════ */
+.drishti-dark-canvas .maplibregl-canvas {
+  filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(110%);
+}
+
 /* ═══════ Animations ═══════ */
 @keyframes ping {
   0% { transform: scale(1); opacity: 0.9; }

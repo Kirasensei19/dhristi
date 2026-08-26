@@ -7,7 +7,7 @@ import {
   Wifi, WifiOff, ChevronDown, ArrowRight, ArrowDownRight, Maximize2,
   Crosshair, Zap, Users, TrendingUp, BarChart3, CircleDot, Send, LogOut,
   CheckCircle2, XCircle, FileText, AlertOctagon, Droplets, Wind, Thermometer,
-  Gauge, Radio, UserCheck, Check, AlertCircle, ZoomIn
+  Gauge, Radio, UserCheck, Check, AlertCircle, ZoomIn, Globe
 } from 'lucide-react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -47,13 +47,8 @@ const BASE_MAP_STYLE = {
   sources: {
     'src-google-dark': {
       type: 'raster',
-      // Real dark road map: roads, labels and boundaries remain visible.
-      tiles: [
-        'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png'
-      ],
-      tileSize: 256,
-      maxzoom: 20,
-      attribution: '© OpenStreetMap contributors © CARTO'
+      tiles: GOOGLE_TILES_ROADMAP,
+      tileSize: 256
     },
     'src-google-light': {
       type: 'raster',
@@ -78,8 +73,8 @@ const BASE_MAP_STYLE = {
       source: 'src-google-dark',
       layout: { visibility: 'visible' },
       paint: {
-          'raster-opacity': 1
-        }
+        'raster-opacity': 1
+      }
     },
     {
       id: 'base-layer-light',
@@ -341,50 +336,12 @@ export default function App() {
   }, [trucks]);
 
   // ═══════════════════════════════════════════════════════════════
-  //  SURVEY OF INDIA (SOI) OFFICIAL SOVEREIGN BOUNDARY (WARM ORANGE / J&K COMPLETE)
+  //  MAP OVERLAY LAYERS (CORRIDORS & HAZARDS)
   // ═══════════════════════════════════════════════════════════════
   const addOfficialIndianBoundary = useCallback(() => {
     if (!map.current || !map.current.isStyleLoaded()) return;
 
     try {
-      if (!map.current.getSource('india-soi-boundary')) {
-        map.current.addSource('india-soi-boundary', {
-          type: 'geojson',
-          data: '/india_soi_boundary.geojson'
-        });
-      }
-
-      // Soft Ambient Casing Layer
-      if (!map.current.getLayer('india-soi-ambient-soft')) {
-        map.current.addLayer({
-          id: 'india-soi-ambient-soft',
-          type: 'line',
-          source: 'india-soi-boundary',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: {
-            'line-color': '#c2410c',
-            'line-width': 5.5,
-            'line-opacity': 0.4,
-            'line-blur': 1.5
-          }
-        });
-      }
-
-      // Clean Official Survey of India Boundary Line (High Contrast Terracotta Orange)
-      if (!map.current.getLayer('india-soi-line-official')) {
-        map.current.addLayer({
-          id: 'india-soi-line-official',
-          type: 'line',
-          source: 'india-soi-boundary',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: {
-            'line-color': '#ea580c',
-            'line-width': 2.8,
-            'line-opacity': 0.95
-          }
-        });
-      }
-
       // Route Corridors Layer
       if (!map.current.getSource('route-corridors')) {
         map.current.addSource('route-corridors', {
@@ -1513,6 +1470,7 @@ export default function App() {
           {/* Map canvas */}
           <div
             ref={mapContainer}
+            className={mapStyle === 'dark' ? 'drishti-dark-canvas' : ''}
             style={{
               position: 'absolute',
               inset: 0,

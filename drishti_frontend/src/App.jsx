@@ -257,6 +257,26 @@ export default function App() {
   const [backendNotifications, setBackendNotifications] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
 
+
+  // ── ML Prediction & YOLO Analysis State ──
+  const [mlPredictionLoading, setMlPredictionLoading] = useState(false);
+  const [mlPredictionResult, setMlPredictionResult] = useState(null);
+  const [imageAnalysisLoading, setImageAnalysisLoading] = useState(false);
+  const [imageAnalysisResult, setImageAnalysisResult] = useState(null);
+  const [selectedHazardImage, setSelectedHazardImage] = useState(null);
+
+  const [mlForm, setMlForm] = useState({
+    location_id: 1,
+    elevation_m: 500,
+    slope_deg: 25,
+    aspect_deg: 180,
+    dist_to_river_m: 1000,
+    dist_to_road_m: 500,
+    rainfall_72h_mm: 100,
+    rainfall_24h_mm: 40,
+    rainfall_intensity_mmh: 10
+  });
+
   // ── Satellite Discovery Toast ──
   const [discoveryToast, setDiscoveryToast] = useState(null);
 
@@ -1011,6 +1031,102 @@ export default function App() {
         `Could not submit hazard: ${error.message}`,
         'error'
       );
+    }
+  };
+
+
+  // ═══════════════════════════════════════════════════════════════
+  //  ML ACTIONS — XGBOOST SUSCEPTIBILITY + YOLO IMAGE ANALYSIS
+  // ═══════════════════════════════════════════════════════════════
+  const handleMlFormChange = (field, value) => {
+    setMlForm((prev) => ({
+      ...prev,
+      [field]: Number(value)
+    }));
+  };
+
+  const runSusceptibilityPrediction = async (e) => {
+    e.preventDefault();
+    setMlPredictionLoading(true);
+
+    try {
+      const response = await axios.post(
+        `${API}/ml/predict-susceptibility`,
+        mlForm
+      );
+
+      const payload = response.data;
+      const result = payload.data;
+      setMlPredictionResult(payload);
+
+      // Update the existing prediction dashboard immediately. The regular
+      // 5-second backend refresh will later replace this with the DB record.
+      if (payload.prediction_id != null) {
+        const confidence = Number(result.hazard_probability ?? result.probability ?? 0);
+        setBackendPredictions((prev) => [{
+          id: payload.prediction_id,
+          location_id: payload.location_id ?? mlForm.location_id,
+          hazard_type: 'HAZARD_SUSCEPTIBILITY',
+          risk_level: result.risk_level,
+          confidence,
+          location_name: `Location #${payload.location_id ?? mlForm.location_id}`,
+          predicted_at: new Date().toISOString()
+        }, ...prev.filter((item) => item.id !== payload.prediction_id)]);
+      }
+
+      notify(
+        `XGBoost prediction complete: ${result.risk_level} risk (${((result.hazard_probability ?? result.probability ?? 0) * 100).toFixed(2)}% hazard probability).`,
+        result.risk_level === 'HIGH' ? 'error' : 'success'
+      );
+    } catch (error) {
+      notify(
+        error.response?.data?.detail ||
+        `ML prediction failed: ${error.message}`,
+        'error'
+      );
+    } finally {
+      setMlPredictionLoading(false);
+    }
+  };
+
+  const analyzeUploadedHazardImage = async () => {
+    if (!selectedHazardImage) {
+      notify('Please select an image before starting YOLO analysis.', 'error');
+      return;
+    }
+
+    setImageAnalysisLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('location_id', String(mlForm.location_id));
+      formData.append('file', selectedHazardImage);
+
+      const response = await axios.post(
+        `${API}/ml/analyze-image`,
+        formData
+      );
+
+      const payload = response.data;
+      setImageAnalysisResult(payload);
+
+      const detected = payload.detection_result?.total_detected ?? 0;
+      const created = payload.hazards_created?.length ?? 0;
+
+      notify(
+        detected === 0
+          ? 'YOLO analysis complete: no hazard detected.'
+          : `YOLO analysis complete: ${detected} detection(s), ${created} hazard report(s) saved.`,
+        detected === 0 ? 'info' : 'success'
+      );
+    } catch (error) {
+      notify(
+        error.response?.data?.detail ||
+        `Image analysis failed: ${error.message}`,
+        'error'
+      );
+    } finally {
+      setImageAnalysisLoading(false);
     }
   };
 
@@ -2336,6 +2452,227 @@ export default function App() {
                     <Mountain size={14} />
                     <span>⛰️ Saturated Slopes (&gt;32° DEM)</span>
                   </button>
+                </div>
+              </div>
+
+              {/* ════════════════════════════════════════════
+                  LIVE ML CONTROL PANEL — XGBOOST + YOLO
+              ════════════════════════════════════════════ */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+                gap: 18,
+                marginBottom: 28
+              }}>
+                {/* XGBoost susceptibility form */}
+                <form
+                  onSubmit={runSusceptibilityPrediction}
+                  style={{
+                    background: 'rgba(15, 23, 42, 0.88)',
+                    border: '1px solid rgba(0, 243, 255, 0.35)',
+                    borderRadius: 16,
+                    padding: 20,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.35)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <Activity size={18} color="#00f3ff" />
+                    <div>
+                      <h3 style={{ margin: 0, color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+                        XGBoost Hazard Susceptibility
+                      </h3>
+                      <p style={{ margin: '3px 0 0', color: '#94a3b8', fontSize: 11 }}>
+                        Run the trained tabular model using terrain and rainfall features.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: 10,
+                    marginTop: 16
+                  }}>
+                    {[
+                      ['location_id', 'Location ID'],
+                      ['elevation_m', 'Elevation (m)'],
+                      ['slope_deg', 'Slope (°)'],
+                      ['aspect_deg', 'Aspect (°)'],
+                      ['dist_to_river_m', 'Distance to River (m)'],
+                      ['dist_to_road_m', 'Distance to Road (m)'],
+                      ['rainfall_72h_mm', 'Rainfall 72h (mm)'],
+                      ['rainfall_24h_mm', 'Rainfall 24h (mm)'],
+                      ['rainfall_intensity_mmh', 'Rainfall Intensity (mm/h)']
+                    ].map(([field, label]) => (
+                      <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <span style={{ color: '#94a3b8', fontSize: 10, fontWeight: 700 }}>{label}</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={mlForm[field]}
+                          onChange={(e) => handleMlFormChange(field, e.target.value)}
+                          required
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '9px 10px',
+                            borderRadius: 8,
+                            background: '#0b1220',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            color: '#ffffff',
+                            fontFamily: 'monospace',
+                            fontSize: 12
+                          }}
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={mlPredictionLoading}
+                    style={{
+                      width: '100%',
+                      marginTop: 16,
+                      padding: '11px 14px',
+                      borderRadius: 9,
+                      border: 'none',
+                      background: mlPredictionLoading ? 'rgba(0,243,255,0.25)' : 'linear-gradient(135deg, #0284c7, #00b8d4)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      cursor: mlPredictionLoading ? 'wait' : 'pointer'
+                    }}
+                  >
+                    {mlPredictionLoading ? 'Running XGBoost Model...' : 'Run Susceptibility Prediction'}
+                  </button>
+
+                  {mlPredictionResult?.data && (
+                    <div style={{
+                      marginTop: 14,
+                      padding: 14,
+                      borderRadius: 10,
+                      background: 'rgba(0, 0, 0, 0.28)',
+                      border: '1px solid rgba(0, 243, 255, 0.22)'
+                    }}>
+                      <div style={{ color: '#94a3b8', fontSize: 10, fontWeight: 800 }}>LATEST MODEL OUTPUT</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginTop: 6 }}>
+                        <div>
+                          <div style={{ color: '#00f3ff', fontSize: 28, fontWeight: 900, fontFamily: 'monospace' }}>
+                            {(((mlPredictionResult.data.hazard_probability ?? mlPredictionResult.data.probability ?? 0) * 100)).toFixed(2)}%
+                          </div>
+                          <div style={{ color: '#94a3b8', fontSize: 11 }}>Hazard Probability</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ color: '#ffffff', fontSize: 13, fontWeight: 900 }}>
+                            {mlPredictionResult.data.risk_level}
+                          </div>
+                          <div style={{ color: '#94a3b8', fontSize: 10 }}>
+                            Prediction #{mlPredictionResult.prediction_id ?? '—'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </form>
+
+                {/* YOLO image analysis */}
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.88)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  borderRadius: 16,
+                  padding: 20,
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.35)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <Eye size={18} color="#f87171" />
+                    <div>
+                      <h3 style={{ margin: 0, color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+                        YOLO Hazard Image Analysis
+                      </h3>
+                      <p style={{ margin: '3px 0 0', color: '#94a3b8', fontSize: 11 }}>
+                        Upload a field image. Detected hazards are saved to PostgreSQL automatically.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginTop: 16,
+                    padding: 16,
+                    borderRadius: 12,
+                    border: '1px dashed rgba(248,113,113,0.45)',
+                    background: 'rgba(239,68,68,0.04)'
+                  }}>
+                    <label style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 700, marginBottom: 7 }}>
+                      IMAGE LOCATION ID: {mlForm.location_id}
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSelectedHazardImage(e.target.files?.[0] || null)}
+                      style={{ width: '100%', color: '#cbd5e1', fontSize: 12 }}
+                    />
+                    <div style={{ marginTop: 10, color: selectedHazardImage ? '#34d399' : '#64748b', fontSize: 11 }}>
+                      {selectedHazardImage ? `Selected: ${selectedHazardImage.name}` : 'Choose a JPG, PNG, WEBP, or other supported image.'}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={analyzeUploadedHazardImage}
+                    disabled={imageAnalysisLoading || !selectedHazardImage}
+                    style={{
+                      width: '100%',
+                      marginTop: 16,
+                      padding: '11px 14px',
+                      borderRadius: 9,
+                      border: 'none',
+                      background: imageAnalysisLoading || !selectedHazardImage ? 'rgba(239,68,68,0.22)' : 'linear-gradient(135deg, #dc2626, #ef4444)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      cursor: imageAnalysisLoading || !selectedHazardImage ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {imageAnalysisLoading ? 'Running YOLO Analysis...' : 'Analyze Hazard Image'}
+                  </button>
+
+                  {imageAnalysisResult && (
+                    <div style={{
+                      marginTop: 14,
+                      padding: 14,
+                      borderRadius: 10,
+                      background: 'rgba(0,0,0,0.28)',
+                      border: '1px solid rgba(239,68,68,0.25)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <span style={{ color: '#94a3b8', fontSize: 11 }}>TOTAL DETECTED</span>
+                        <strong style={{ color: '#f87171', fontFamily: 'monospace' }}>
+                          {imageAnalysisResult.detection_result?.total_detected ?? 0}
+                        </strong>
+                      </div>
+                      {(imageAnalysisResult.detection_result?.detections || []).length === 0 ? (
+                        <div style={{ color: '#94a3b8', fontSize: 12 }}>No hazard detected in this image.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {imageAnalysisResult.detection_result.detections.map((detection, index) => (
+                            <div key={`${detection.hazard_type}-${index}`} style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: 10,
+                              padding: '8px 10px',
+                              borderRadius: 7,
+                              background: 'rgba(255,255,255,0.04)',
+                              fontSize: 11
+                            }}>
+                              <span style={{ color: '#ffffff', fontWeight: 700 }}>{detection.hazard_type}</span>
+                              <span style={{ color: '#fbbf24', fontFamily: 'monospace' }}>
+                                {(Number(detection.confidence || 0) * 100).toFixed(2)}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

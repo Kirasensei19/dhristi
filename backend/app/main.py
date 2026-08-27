@@ -16,6 +16,7 @@ import app.routes.auth as auth
 import app.routes.user as users
 import app.routes.dashboard as dashboard
 import app.routes.chat as chat
+import app.routes.ml_prediction as ml_prediction
 app = FastAPI()
 
 app.add_middleware(
@@ -41,6 +42,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(dashboard.router)
 app.include_router(chat.router)
+app.include_router(ml_prediction.router)
 Base.metadata.create_all(bind=engine)
 
 

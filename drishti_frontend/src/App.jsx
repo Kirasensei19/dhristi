@@ -193,7 +193,18 @@ const INITIAL_INCIDENTS = [
     status: 'BLOCKADE_ACTIVE',
     image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600',
     gps_accuracy: '±3.2m (RTK Fix)',
-    timestamp: new Date(Date.now() - 3600000).toISOString()
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    ai_verification: {
+      status: 'AI_VERIFICATION_COMPLETE',
+      ai_decision: 'AI_VERIFIED_AUTHENTIC',
+      confidence_percentage: '96.2%',
+      recommendation: 'CONFIRMED DISASTER FAULT: 72h Rain (174mm) & 42° slope exceed historical trigger threshold (45mm). Enforce blockade and reroute convoys.',
+      cross_validation_factors: [
+        { factor: 'HISTORICAL_RAINFALL_BASELINE', matched: true, detail: '72h Antecedent Rain (174.0mm) exceeds historical threshold (45.0mm).' },
+        { factor: 'SLOPE_STABILITY_INDEX', matched: true, detail: 'Steep slope (42.0°) + soil saturation confirms slope failure.' },
+        { factor: 'VISION_AI_CONFIRMATION', matched: true, detail: 'YOLOv8 confirmed ACTIVE_LANDSLIDE_DEBRIS (94.8% confidence).' }
+      ]
+    }
   },
   {
     incident_id: 'INC-NER-2026-002',
@@ -210,7 +221,18 @@ const INITIAL_INCIDENTS = [
     status: 'PENDING_REVIEW',
     image_url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=600',
     gps_accuracy: '±4.8m (GNSS Standard)',
-    timestamp: new Date(Date.now() - 1200000).toISOString()
+    timestamp: new Date(Date.now() - 1200000).toISOString(),
+    ai_verification: {
+      status: 'AI_VERIFICATION_COMPLETE',
+      ai_decision: 'AI_VERIFIED_AUTHENTIC',
+      confidence_percentage: '91.8%',
+      recommendation: 'CONFIRMED FLASH FLOOD: Heavy 24h precipitation (68.5mm) and low road elevation confirm severe hydroplaning hazard.',
+      cross_validation_factors: [
+        { factor: 'HISTORICAL_RAINFALL_BASELINE', matched: true, detail: '24h Rain (68.5mm) is 1.5x historical flash flood baseline (45.0mm).' },
+        { factor: 'WIND_STRUCTURAL_STRESS', matched: true, detail: 'Precipitation intensity (14.2 mm/h) supports rapid waterlogging.' },
+        { factor: 'VISION_AI_CONFIRMATION', matched: true, detail: 'YOLOv8 confirmed FLOODED_ROAD_OR_SUBMERGED (89.1% confidence).' }
+      ]
+    }
   },
   {
     incident_id: 'INC-NER-2026-003',
@@ -227,7 +249,18 @@ const INITIAL_INCIDENTS = [
     status: 'BLOCKADE_ACTIVE',
     image_url: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=600',
     gps_accuracy: '±2.1m (High Precision)',
-    timestamp: new Date(Date.now() - 7200000).toISOString()
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    ai_verification: {
+      status: 'AI_VERIFICATION_COMPLETE',
+      ai_decision: 'AI_VERIFIED_AUTHENTIC',
+      confidence_percentage: '95.4%',
+      recommendation: 'CONFIRMED STRUCTURAL FAULT: Extreme river discharge (890 m³/s) & peak wind gusts (48 km/h) caused pier structural stress.',
+      cross_validation_factors: [
+        { factor: 'WIND_STRUCTURAL_STRESS', matched: true, detail: 'Wind gusts (48 km/h) & river discharge (890 m³/s) confirm structural pier fatigue.' },
+        { factor: 'HISTORICAL_RAINFALL_BASELINE', matched: true, detail: 'Upstream antecedent rain (142mm) elevated hydrological force on bridge.' },
+        { factor: 'VISION_AI_CONFIRMATION', matched: true, detail: 'YOLOv8 visual model confirmed DAMAGED_BRIDGE_INFRASTRUCTURE (92.3% confidence).' }
+      ]
+    }
   }
 ];
 

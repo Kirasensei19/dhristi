@@ -954,6 +954,31 @@ export default function App() {
     }
   };
 
+  const handleAiVerifyHazard = async (incident) => {
+    const hazardId = incident.id || 1;
+    notify('🤖 AI Agent Cross-Checking Wind, Rainfall & Baseline Data...', 'info');
+
+    try {
+      const response = await axios.post(`${API}/hazards/${hazardId}/ai-verify`);
+      const verification = response.data.verification;
+
+      setIncidents((prev) =>
+        prev.map((item) =>
+          item.incident_id === incident.incident_id || item.id === hazardId
+            ? { ...item, status: response.data.current_status, ai_verification: verification }
+            : item
+        )
+      );
+
+      notify(
+        `🤖 AI Decision: ${verification.ai_decision} (${verification.confidence_percentage} Confidence) — ${verification.recommendation}`,
+        verification.ai_decision === 'AI_VERIFIED_AUTHENTIC' ? 'success' : 'warning'
+      );
+    } catch (error) {
+      notify('AI cross-verification failed to reach backend endpoint.', 'error');
+    }
+  };
+
   const handleDismissIncident = async (incident) => {
     try {
       if (incident.id != null) {
@@ -2228,11 +2253,74 @@ export default function App() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                           <button
                             onClick={() => handleApproveBlockade(inc)}
                             disabled={isBlocked}
                             style={{
+                              padding: '8px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: isBlocked ? 'rgba(239, 68, 68, 0.2)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                              color: isBlocked ? '#f87171' : 'white',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: isBlocked ? 'default' : 'pointer'
+                            }}
+                          >
+                            {isBlocked ? 'Blockade Active' : 'Approve Blockade'}
+                          </button>
+
+                          <button
+                            onClick={() => handleAiVerifyHazard(inc)}
+                            style={{
+                              padding: '8px',
+                              borderRadius: '8px',
+                              border: '1px solid rgba(0, 243, 255, 0.4)',
+                              background: 'rgba(0, 243, 255, 0.12)',
+                              color: '#00f3ff',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <Bot size={13} />
+                            AI Cross-Verify
+                          </button>
+                        </div>
+
+                        {/* AI Verification Breakdown Drawer */}
+                        {inc.ai_verification && (
+                          <div style={{
+                            marginTop: 8,
+                            padding: 10,
+                            borderRadius: 10,
+                            background: 'rgba(0, 0, 0, 0.4)',
+                            border: '1px solid rgba(0, 243, 255, 0.3)',
+                            fontSize: '10px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <span style={{ color: '#00f3ff', fontWeight: 800 }}>🤖 AI DECISION:</span>
+                              <span style={{ color: '#34d399', fontWeight: 900, fontFamily: 'monospace' }}>
+                                {inc.ai_verification.ai_decision} ({inc.ai_verification.confidence_percentage})
+                              </span>
+                            </div>
+                            <div style={{ color: '#cbd5e1', marginBottom: 6, lineHeight: 1.3 }}>
+                              {inc.ai_verification.recommendation}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              {(inc.ai_verification.cross_validation_factors || []).map((f, idx) => (
+                                <div key={idx} style={{ color: f.matched ? '#34d399' : '#94a3b8' }}>
+                                  • {f.factor}: {f.detail}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                               padding: '10px 12px',
                               borderRadius: '8px',
                               background: isBlocked ? 'rgba(239, 68, 68, 0.2)' : 'linear-gradient(135deg, #10b981, #059669)',

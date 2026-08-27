@@ -2253,28 +2253,33 @@ export default function App() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 'auto' }}>
                           <button
                             onClick={() => handleApproveBlockade(inc)}
                             disabled={isBlocked}
                             style={{
-                              padding: '8px',
+                              padding: '8px 10px',
                               borderRadius: '8px',
                               border: 'none',
                               background: isBlocked ? 'rgba(239, 68, 68, 0.2)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
                               color: isBlocked ? '#f87171' : 'white',
                               fontSize: '11px',
                               fontWeight: 800,
-                              cursor: isBlocked ? 'default' : 'pointer'
+                              cursor: isBlocked ? 'default' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4
                             }}
                           >
-                            {isBlocked ? 'Blockade Active' : 'Approve Blockade'}
+                            <CheckCircle2 size={13} />
+                            {isBlocked ? 'Blocked' : 'Approve'}
                           </button>
 
                           <button
                             onClick={() => handleAiVerifyHazard(inc)}
                             style={{
-                              padding: '8px',
+                              padding: '8px 10px',
                               borderRadius: '8px',
                               border: '1px solid rgba(0, 243, 255, 0.4)',
                               background: 'rgba(0, 243, 255, 0.12)',
@@ -2289,17 +2294,38 @@ export default function App() {
                             }}
                           >
                             <Bot size={13} />
-                            AI Cross-Verify
+                            AI Verify
+                          </button>
+
+                          <button
+                            onClick={() => handleDismissIncident(inc)}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
+                              color: '#e2e8f0',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <XCircle size={13} />
+                            Dismiss
                           </button>
                         </div>
 
                         {/* AI Verification Breakdown Drawer */}
                         {inc.ai_verification && (
                           <div style={{
-                            marginTop: 8,
+                            marginTop: 10,
                             padding: 10,
                             borderRadius: 10,
-                            background: 'rgba(0, 0, 0, 0.4)',
+                            background: 'rgba(0, 0, 0, 0.45)',
                             border: '1px solid rgba(0, 243, 255, 0.3)',
                             fontSize: '10px'
                           }}>
@@ -2321,45 +2347,6 @@ export default function App() {
                             </div>
                           </div>
                         )}
-                              padding: '10px 12px',
-                              borderRadius: '8px',
-                              background: isBlocked ? 'rgba(239, 68, 68, 0.2)' : 'linear-gradient(135deg, #10b981, #059669)',
-                              color: isBlocked ? '#fca5a5' : 'white',
-                              border: 'none',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: isBlocked ? 'default' : 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6
-                            }}
-                          >
-                            <CheckCircle2 size={14} />
-                            {isBlocked ? 'Blockade Active' : 'Approve Blockade'}
-                          </button>
-
-                          <button
-                            onClick={() => handleDismissIncident(inc)}
-                            style={{
-                              padding: '10px 12px',
-                              borderRadius: '8px',
-                              background: 'rgba(255, 255, 255, 0.06)',
-                              border: '1px solid rgba(255, 255, 255, 0.15)',
-                              color: '#e2e8f0',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6
-                            }}
-                          >
-                            <XCircle size={14} />
-                            Dismiss / False Alarm
-                          </button>
-                        </div>
                       </div>
                     </div>
                   );

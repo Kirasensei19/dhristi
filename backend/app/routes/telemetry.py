@@ -40,6 +40,28 @@ def create_telemetry(
             detail="Vehicle not found"
         )
 
+    # Auto-detect hazard using AI ML service on incoming telemetry sensors
+    from app.services.ml_service import predict_hazard_susceptibility
+    
+    slope_val = float(telemetry.slope or 0.0)
+    rain_rate = float(telemetry.rainfall_rate or 0.0)
+    rain_72h = rain_rate * 8.0  # estimate 72h accumulated rain
+    
+    ml_result = predict_hazard_susceptibility({
+        "elevation_m": 850.0,
+        "slope_deg": slope_val,
+        "aspect_deg": float(telemetry.heading or 180.0),
+        "dist_to_river_m": 500.0,
+        "dist_to_road_m": 10.0,
+        "rainfall_72h_mm": rain_72h,
+        "rainfall_24h_mm": rain_rate * 3.0,
+        "rainfall_intensity_mmh": rain_rate
+    })
+
+    calculated_status = "CRITICAL" if ml_result["risk_level"] == "HIGH" else (
+        "WARNING" if ml_result["risk_level"] == "MEDIUM" else "SAFE"
+    )
+
     new_telemetry = models.Telemetry(
         vehicle_id=telemetry.vehicle_id,
         latitude=telemetry.latitude,
@@ -48,12 +70,12 @@ def create_telemetry(
         heading=telemetry.heading,
         rainfall_rate=telemetry.rainfall_rate,
         slope=telemetry.slope,
-        hazard_status=telemetry.hazard_status
+        hazard_status=calculated_status
     )
 
     db.add(new_telemetry)
 
-    # Update vehicle's latest position
+    # Update vehicle's latest position and AI-calculated hazard status
     if telemetry.latitude is not None:
         vehicle.latitude = telemetry.latitude
 
@@ -65,7 +87,11 @@ def create_telemetry(
     db.commit()
     db.refresh(new_telemetry)
 
-    return new_telemetry
+    return {
+        "telemetry": new_telemetry,
+        "ai_hazard_evaluation": ml_result,
+        "auto_detected_status": calculated_status
+    }
 
 
 # GET ALL TELEMETRY
